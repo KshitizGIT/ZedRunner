@@ -1,0 +1,41 @@
+@startuml
+!define table(x) class x << (t, #ffaaaa)>>
+!define primary_key(x) <u>x</u>
+!define foreign_key(x) <i><u>x</u></i>
+hide methods
+hide stereotypes
+
+table(horse){
+bloodline: string
+breed_type: string
+breeding_counter: number
+career_first: number
+career_second: number
+career_third: number
+class: number
+genotype: string
+hashinfo_color: string
+hashinfo_hexcode: string
+hashinfo_name: string
+primary_key(horse_id) : number
+horse_type: string
+img_url:string
+is_approved_for_racing: boolean
+is_in_stud: boolean,
+is_on_racing_contract: boolean
+last_stud_duration: number,
+last_stud_timestamp: number
+mating_price: number
+next_breeding_date: datetime
+number_of_races: number,
+owner: string,
+parents_father: string,
+parents_mother: string
+rating: numer,
+super_coat: boolean,
+tx: string,
+tx_date: datetime
+win_rate: number
+@enduml
+
+

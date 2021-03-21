@@ -1,76 +1,119 @@
 import requests
 from zedrunner_store import ZedRunnerStore
+import argparse
+from mapper import Mapper
 
 class ZedRun:
 
     def __init__(self):
+        self.mapper = Mapper()
         self.store = ZedRunnerStore()
 
-    def clean_horses_data(self, horse_datas):
-        return_datas = []
-        for d in horse_datas:
-            bloodline = d['bloodline']
-            breed_type = d['breed_type']
-            breeding_counter = d['breeding_counter']
-            career_first = d['career']['first']
-            career_second = d['career']['second']
-            career_third  = d['career']['third']
-            c=d['class']
-            genotype = d['genotype']
-            hashinfo_color = d['hash_info']['color']
-            hashinfo_hexcode = d['hash_info']['hex_code']
-            hashinfo_name=d['hash_info']['name']
-            horse_id=d['horse_id']
-            horse_type= d['horse_type']
-            img_url=d['img_url']
-            is_approved_for_racing= d['is_approved_for_racing']
-            is_in_stud= d['is_in_stud']
-            is_on_racing_contract=d['is_on_racing_contract']
-            last_stud_duration= d['last_stud_duration']
-            last_stud_timestamp= d['last_stud_timestamp']
-            mating_price =d['mating_price']
-            next_breeding_date= d['next_breeding_date']
-            number_of_races= d['number_of_races']
-            owner= d['owner']
-            parents_father= d['parents']['father']
-            parents_mother= d['parents']['mother']
-            rating =d['rating']
-            super_coat= d['super_coat']
-            tx= d['tx']
-            tx_date =d['tx_date']
-            win_rate=d['win_rate']
 
-            return_datas.append((bloodline , breed_type , breeding_counter ,
-                career_first , career_second , career_third  , c, genotype ,
-                hashinfo_color , hashinfo_hexcode , hashinfo_name, horse_id,
-                horse_type, img_url, is_approved_for_racing, is_in_stud,
-                is_on_racing_contract, last_stud_duration, last_stud_timestamp, mating_price ,
-                next_breeding_date, number_of_races, owner, parents_father, parents_mother,
-                rating , super_coat, tx, tx_date , win_rate
-                ))
+    def fetch_race_data(self):
+        url = 'https://zed-ql.zed.run/graphql/'
 
-        return return_datas
+        query ="""query{
+        get_race_results(first:100, input: {only_my_racehorses: false}, after: {0}) {
+            edges {
+            cursor
+            node {
+            country
+            country_code
+            city
+            name
+            length
+            start_time
+            fee
+            race_id
+            weather
+            status
+            class
+            prize_pool {
+                first
+                second
+                third
+                total 
+                }
+            horses {
+                horse_id 
+                finish_time
+                final_position
+                name
+                gate
+                owner_address
+                bloodline
+                gender
+                breed_type
+                gen
+                races
+                coat
+                win_rate
+                career
+                hex_color
+                img_url
+                class
+                stable_name 
+                } 
+            }
+            } 
+         }
+            
+        } """ 
+        after_query = query.replace('{0}','null')
 
+        response = requests.post(url, json={'query': after_query})
+        print(response.status_code)
+        jsondata = response.json()
+        datas = jsondata['data']['get_race_results']['edges']
+        data_set = self.mapper.map_race_data(datas)
+        # store races data set
+        self.store.store_races(data_set['races'])
+
+        # store races data set
+        self.store.store_races_result(data_set['races_results'])
+        
 
     def fetch_horse_data(self):
         url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc&page=2'
         offset = 0
+        is_continued = True
         while True:
             current_url = url.format(offset)
+            print("Calling endpoint{}".format(current_url))
             response = requests.get(current_url)
             print(response.status_code)
             jsondata =response.json()
             count = len(jsondata)
             offset = offset + count
-            print(jsondata)
-            print(len(jsondata))
-            horse_datas = self.clean_horses_data(jsondata)
-            self.store.store_horses(horse_datas)
-            if count == 10:
+            first_horse = jsondata[0]
+            print('Calling endpoint')
+
+            if not self.store.horse_exists(first_horse):
+                horse_datas = self.mapper.map_horses_data(jsondata)
+                self.store.store_horses(horse_datas)
+                is_continued = False
+
+            if is_continued and count == 10:
                 break
 
 
+def main(type, forced):
+    run = ZedRun()
+    if(type == 'horse'):
+        run.fetch_horse_data()
+    elif(type == 'race'):
+        run.fetch_race_data()
+    
+
 
 if __name__ == '__main__':
-    run = ZedRun()
-    run.fetch_horse_data()
+    ap = argparse.ArgumentParser()
+    # Add arguments to parser
+    ap.add_argument("-t","--type", required=True, help="type can be horse, race or stable")
+    ap.add_argument('-f', '--force', required=False, help="Force and restore cache")
+    args = vars(ap.parse_args())
+    type = args['type']
+    forced = args['force'] or False
+    print(type, forced)
+    main(type, forced)

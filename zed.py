@@ -97,6 +97,31 @@ class ZedRun:
             if is_continued and count == 10:
                 break
 
+    def fetch_stable_data(self ):
+        url = 'https://api.zed.run/api/v1/horses/get_user_horses?public_address={0}&offset={1}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc&page=2'
+        offset = 0
+        is_continued = True
+        while True:
+            current_url = url.format('0x3e238A00438837f48756be5516200dDDFC304865',offset)
+            print("Calling endpoint{}".format(current_url))
+            response = requests.get(current_url)
+            print(response.status_code)
+            jsondata =response.json()
+            count = len(jsondata)
+            offset = offset + count
+            first_horse = jsondata[0]
+            print('Calling endpoint')
+            import pdb
+            pdb.set_trace()
+
+            if not self.store.horse_exists(first_horse):
+                horse_datas = self.mapper.map_horses_data(jsondata)
+                self.store.store_horses(horse_datas)
+                is_continued = False
+
+            if is_continued and count == 10:
+                break
+
 
 def main(type, forced):
     run = ZedRun()
@@ -104,8 +129,9 @@ def main(type, forced):
         run.fetch_horse_data()
     elif(type == 'race'):
         run.fetch_race_data()
+    elif(type == 'stable'):
+        run.fetch_stable_data()
     
-
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()

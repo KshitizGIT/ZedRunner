@@ -29,3 +29,21 @@ pipenv run python zed.py --type horse
 pipenv run python zed.py --type race --force True
 pipenv run python zed.py --type stable
 ```
+
+## Configuration
+
+Check the `config.py` file. This contains all the configuration for database and telegram bot settings.
+```python 
+Database = {
+'host': 'localhost',
+'user': 'zedrunner',
+'password': '#ZedRunner@2021',
+'database': 'zed'
+}
+ 
+BOT = {
+   'token': '1793290514:AAFjFd95hzTxOb-lxN1ymc3vV7uBcUlJ-Xc' ,
+   'channel': '@zed_channel_test'
+}
+
+```

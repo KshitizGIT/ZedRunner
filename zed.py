@@ -1,3 +1,4 @@
+import traceback
 import requests
 from zedrunner_store import ZedRunnerStore
 import argparse
@@ -95,7 +96,7 @@ class ZedRun:
         
     def fetch_horse_data(self, forced=False):
         url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc'
-        offset = 0
+        offset = 13189
         while True:
             current_url = url.format(offset)
             print("Calling endpoint{}".format(current_url))
@@ -104,6 +105,9 @@ class ZedRun:
             jsondata =response.json()
             break_loop = True
             count = len(jsondata)
+            if count == 0:
+                break
+
             offset = offset + count
             first_horse = jsondata[0]
             print(len(jsondata))
@@ -115,7 +119,7 @@ class ZedRun:
                 self.store.store_horses(horse_datas)
                 break_loop = False
 
-            if break_loop or count == 0:
+            if break_loop:
                 break
 
     def fetch_stable_data(self,forced=False):
@@ -158,7 +162,8 @@ def main(type, forced):
         Notification.send_message(success_message)
     except Exception as e:       
         failure_message = message + ' failed.'
-        Notification.send_message(f"Error: {failure_message} Reason {str(e)}")
+        stacktrace = traceback.format_exc()
+        Notification.send_message(f"Error: {failure_message} Reason: {stacktrace}")
 
 
 

@@ -86,7 +86,13 @@ class Mapper:
             number_of_races= d['number_of_races']
             owner= d['owner']
             parents_father= d['parents']['father']
+            parents_father_id = None
+            if parents_father:
+                parents_father_id = parents_father['horse_id']
             parents_mother= d['parents']['mother']
+            parents_mother_id = None
+            if parents_mother:
+                parents_mother_id = parents_mother['horse_id']
             rating =d['rating']
             super_coat= d['super_coat']
             tx= d['tx']
@@ -98,7 +104,7 @@ class Mapper:
                 hashinfo_color , hashinfo_hexcode , hashinfo_name, horse_id,
                 horse_type, img_url, is_approved_for_racing, is_in_stud,
                 is_on_racing_contract, last_stud_duration, last_stud_timestamp, mating_price ,
-                next_breeding_date, number_of_races, owner, parents_father, parents_mother,
+                next_breeding_date, number_of_races, owner, parents_father_id, parents_mother_id,
                 rating , super_coat, tx, tx_date , win_rate
                 ))
 

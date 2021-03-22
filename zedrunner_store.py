@@ -97,8 +97,6 @@ class ZedRunnerStore:
                 cursor.execute(query_race)
                 data = cursor.fetchall()
                 if data:
-                    import pdb
-                    pdb.set_trace()
                     print('Race exists')
                     return True
                 else:

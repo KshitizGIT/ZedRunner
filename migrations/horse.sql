@@ -9,7 +9,7 @@ create table horses (
     genotype VARCHAR(50),
     hashinfo_color VARCHAR(100),
     hashinfo_hexcode VARCHAR(100),
-    hashinfo_name VARCHAR(100),
+    hashinfo_name VARCHAR(1000),
     horse_id INT,
     horse_type  VARCHAR(100),
     img_url VARCHAR(100) ,

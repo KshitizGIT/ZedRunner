@@ -126,27 +126,35 @@ class ZedRun:
                 break
 
     def fetch_stable_data(self,forced=False):
-        url = 'https://api.zed.run/api/v1/horses/get_user_horses?public_address={0}&offset={1}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc&page=2'
-        offset = 0
-        is_continued = True
-        while True:
-            current_url = url.format('0x3e238A00438837f48756be5516200dDDFC304865',offset)
-            print("Calling endpoint{}".format(current_url))
-            response = requests.get(current_url)
-            print(response.status_code)
-            jsondata =response.json()
-            count = len(jsondata)
-            offset = offset + count
-            first_horse = jsondata[0]
-            print('Calling endpoint')
+        datas = self.store.distinct_owner_address()
+        list_address = [d[0] for d in datas]
 
-            if not self.store.horse_exists(first_horse):
-                horse_datas = self.mapper.map_horses_data(jsondata)
-                self.store.store_horses(horse_datas)
-                is_continued = False
+        url = 'https://api.zed.run/api/v1/horses/get_user_horses?public_address={0}&offset={1}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc'
+        for address in list_address:
+            self.logger.info(f"Fetching stable information for address {address}")
+            offset = 0
+            while True:
+                current_url = url.format(address, offset)
+                self.logger.info(f"Calling endpoint: {current_url}")
+                response = requests.get(current_url)
+                jsondata =response.json()
+                self.logger.debug(f"Response from api: {jsondata}")
+                break_loop = True
+                count = len(jsondata)
+                if count == 0:
+                    break
 
-            if is_continued and count == 10:
-                break
+                offset = offset + count
+                first_horse = jsondata[0]
+
+                if forced or not self.store.stable_exists(first_horse):
+                    horse_datas = self.mapper.map_horses_data(jsondata)
+                    self.logger.info('Store stable information to database.')
+                    self.store.store_stables(horse_datas)
+                    break_loop = False
+
+                if break_loop:
+                    break
 
 
 def main(type, forced):

@@ -112,3 +112,49 @@ class ZedRunnerStore:
                 else:
                     return False
 
+    def distinct_owner_address(self):
+        query_owner_address = """select distinct owner_address from races_results"""
+        with self.__get_connection() as connection:
+            with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {query_owner_address}")
+                cursor.execute(query_owner_address)
+                data = cursor.fetchall()
+                return data
+
+    def stable_exists(self, horse_info):
+        query_horse = "SELECT 1 from stables where horse_id = %s"%(horse_info['horse_id'])
+
+        with self.__get_connection() as connection:
+            with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {query_horse}")
+                cursor.execute(query_horse)
+                data = cursor.fetchall()
+                if data:
+                    self.logger.info("Stable information already exists")
+                    return True
+                else:
+                    return False
+
+    def store_stables(self, horse_datas):
+        list_of_ids = [d[11] for d in horse_datas]
+        format_strings = ','.join(['%s'] * len(list_of_ids))
+        delete_horses_query = """
+        DELETE FROM stables where horse_id in (%s)
+        """%format_strings
+        insert_horses_query = """
+        INSERT INTO stables(bloodline, breed_type , breeding_counter , career_first ,
+                        career_second , career_third , class , genotype, hashinfo_color ,
+                        hashinfo_hexcode , hashinfo_name , horse_id , horse_type , img_url,
+                        is_approved_for_racing, is_in_stud, is_on_racing_contract , last_stud_duration,
+                        last_stud_timestamp , mating_price , next_breeding_date , number_of_races , 
+                        owner , parents_father  , parents_mother  , rating  , super_coat  ,
+                        tx , tx_date ,win_rate  )
+        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """
+        with self.__get_connection() as connection:
+            with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {delete_horses_query} with parameters {tuple(list_of_ids)}")
+                cursor.execute(delete_horses_query,tuple(list_of_ids))
+                self.logger.debug(f"Query: {insert_horses_query} with parameters {horse_datas}")
+                cursor.executemany(insert_horses_query, horse_datas)
+                connection.commit()

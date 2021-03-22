@@ -11,8 +11,8 @@ class ZedRun:
 
     def __init__(self, logger):
         self.mapper = Mapper()
-        self.store = ZedRunnerStore()
         self.logger = logger
+        self.store = ZedRunnerStore(logger)
 
 
     def fetch_race_data(self, forced=False):
@@ -154,6 +154,10 @@ def main(type, forced):
     message = f"Zed Run with settings Type:'{type}' and Forced: {forced}"
     logger = logging.getLogger('zedrunner')
     try:
+        if(type not in ['horse', 'race', 'stable']):
+            print(f"'{type}' is not supported")
+            return
+
         logger.info(f"Starting {message}")
 
         run = ZedRun(logger)
@@ -182,6 +186,6 @@ if __name__ == '__main__':
     ap.add_argument('-f', '--force', required=False, help="Force and restore cache")
     args = vars(ap.parse_args())
     type = args['type']
-    forced = args['force'] or False
-    print(type, forced)
+    force_string = args['force'] or 'False'
+    forced = force_string.lower() in ['true', 't']
     main(type, forced)

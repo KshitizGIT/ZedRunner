@@ -3,6 +3,9 @@ from config import Database
 
 
 class ZedRunnerStore:
+    def __init__(self, logger):
+        self.logger = logger
+    
     def __get_connection(self):
         connection = connect(
                 host = Database.get("host"),
@@ -17,10 +20,11 @@ class ZedRunnerStore:
 
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {query_horse}")
                 cursor.execute(query_horse)
                 data = cursor.fetchall()
                 if data:
-                    print('Horse exists')
+                    self.logger.info("Horse information already exists")
                     return True
                 else:
                     return False
@@ -43,7 +47,9 @@ class ZedRunnerStore:
         """
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {delete_horses_query} with parameters {tuple(list_of_ids)}")
                 cursor.execute(delete_horses_query,tuple(list_of_ids))
+                self.logger.debug(f"Query: {insert_horses_query} with parameters {horse_datas}")
                 cursor.executemany(insert_horses_query, horse_datas)
                 connection.commit()
 
@@ -63,7 +69,9 @@ class ZedRunnerStore:
 
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {delete_races_query} with parameters {tuple(list_of_ids)}")
                 cursor.execute(delete_races_query, tuple(list_of_ids) )
+                self.logger.debug(f"Query: {insert_races_query} with parameters {races_data}")
                 cursor.executemany(insert_races_query, races_data)
                 connection.commit()
 
@@ -84,20 +92,22 @@ class ZedRunnerStore:
         """
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {delete_races_query} with parameters {tuple(list_of_race_ids)}")
                 cursor.execute(delete_races_query, tuple(list_of_race_ids))
+                self.logger.debug(f"Query: {insert_races_query} with parameters {races_data}")
                 cursor.executemany(insert_races_query, races_data)
                 connection.commit()
 
     def race_exists(self, race_info):
         query_race = "SELECT 1 from races where race_id = '%s'"%(race_info['node']['race_id'])
-        print(query_race)
 
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                self.logger.debug(f"Query: {query_race}")
                 cursor.execute(query_race)
                 data = cursor.fetchall()
                 if data:
-                    print('Race exists')
+                    self.logger.info("Race information already exists.")
                     return True
                 else:
                     return False

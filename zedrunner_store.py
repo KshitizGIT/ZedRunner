@@ -14,6 +14,7 @@ class ZedRunnerStore:
 
     def horse_exists(self, horse_info):
         query_horse = "SELECT 1 from horses where horse_id = %s"%(horse_info['horse_id'])
+
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(query_horse)
@@ -25,6 +26,11 @@ class ZedRunnerStore:
                     return False
 
     def store_horses(self, horse_datas):
+        list_of_ids = [d[11] for d in horse_datas]
+        format_strings = ','.join(['%s'] * len(list_of_ids))
+        delete_horses_query = """
+        DELETE FROM horses where horse_id in (%s)
+        """%format_strings
         insert_horses_query = """
         INSERT INTO horses(bloodline, breed_type , breeding_counter , career_first ,
                         career_second , career_third , class , genotype, hashinfo_color ,
@@ -37,10 +43,16 @@ class ZedRunnerStore:
         """
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                cursor.execute(delete_horses_query,tuple(list_of_ids))
                 cursor.executemany(insert_horses_query, horse_datas)
                 connection.commit()
 
     def store_races(self, races_data):
+        list_of_ids = [d[10] for d in races_data]
+
+        format_strings = ','.join(['%s'] * len(list_of_ids))
+        delete_races_query = "DELETE From races where race_id in (%s)"%format_strings
+
         insert_races_query = """INSERT INTO races(city, class, country_code, fee,
                           length, name, prizepool_first,
                           prizepool_second, prizepool_third,
@@ -51,12 +63,17 @@ class ZedRunnerStore:
 
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
-                import pdb
-                pdb.set_trace()
+                cursor.execute(delete_races_query, tuple(list_of_ids) )
                 cursor.executemany(insert_races_query, races_data)
                 connection.commit()
 
     def store_races_result(self, races_data):
+        list_of_race_ids = set([d[0] for d in races_data])
+        import pdb
+        pdb.set_trace()
+        format_strings = ','.join(['%s'] * len(list_of_race_ids))
+        delete_races_query = "DELETE From races_results where race_id in (%s)"%format_strings
+
         insert_races_query = """ 
         INSERT INTO races_results( race_id, horse_id ,
                                    finish_time , final_position ,
@@ -69,6 +86,20 @@ class ZedRunnerStore:
         """
         with self.__get_connection() as connection:
             with connection.cursor() as cursor:
+                cursor.execute(delete_races_query, tuple(list_of_race_ids))
                 cursor.executemany(insert_races_query, races_data)
                 connection.commit()
+    def race_exists(self, race_info):
+        query_race = "SELECT 1 from races where race_id = '%s'"%(race_info['node']['race_id'])
+        print(query_race)
+
+        with self.__get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query_race)
+                data = cursor.fetchall()
+                if data:
+                    print('Race exists')
+                    return True
+                else:
+                    return False
 

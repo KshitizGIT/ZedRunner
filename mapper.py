@@ -5,7 +5,6 @@ class Mapper:
 
         for d in race_data:
             # races tuple
-            cursor = d['cursor']
             node = d['node']
             horses = node['horses']
 
@@ -55,7 +54,8 @@ class Mapper:
                                     career , hex_color , img_url ,
                                     horse_class , stable_name ))
 
-        return {"races": return_races, "races_results": return_races_results}
+        return {"races": return_races, "races_results": return_races_results }
+
 
 
 
@@ -102,4 +102,4 @@ class Mapper:
                 rating , super_coat, tx, tx_date , win_rate
                 ))
 
-            return return_datas
+        return return_datas

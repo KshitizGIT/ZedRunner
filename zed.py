@@ -10,8 +10,9 @@ class ZedRun:
         self.store = ZedRunnerStore()
 
 
-    def fetch_race_data(self):
+    def fetch_race_data(self, forced=False):
         url = 'https://zed-ql.zed.run/graphql/'
+        cursor = 'null'
 
         query ="""query{
         get_race_results(first:100, input: {only_my_racehorses: false}, after: {0}) {
@@ -57,27 +58,44 @@ class ZedRun:
                 } 
             }
             } 
+
+            page_info {
+                end_cursor
+                has_next_page
+            }
          }
             
         } """ 
-        after_query = query.replace('{0}','null')
+        break_loop = True
+        while True:
+            after_query = query.replace('{0}',cursor)
 
-        response = requests.post(url, json={'query': after_query})
-        print(response.status_code)
-        jsondata = response.json()
-        datas = jsondata['data']['get_race_results']['edges']
-        data_set = self.mapper.map_race_data(datas)
-        # store races data set
-        self.store.store_races(data_set['races'])
+            response = requests.post(url, json={'query': after_query})
+            print(response.status_code)
+            jsondata = response.json()
+            datas = jsondata['data']['get_race_results']['edges']
 
-        # store races data set
-        self.store.store_races_result(data_set['races_results'])
+            cursor ='"'  + jsondata['data']['get_race_results']['page_info']['end_cursor'] + '"'
+
+            has_next_page = jsondata['data']['get_race_results']['page_info']['has_next_page']
+
+            data_set = self.mapper.map_race_data(datas)
+            print(cursor)
+            if forced or not self.store.race_exists(datas[0]):
+                # store races data set
+                self.store.store_races(data_set['races'])
+
+                # store races data set
+                self.store.store_races_result(data_set['races_results'])
+                break_loop = False
+
+            if  break_loop or not has_next_page:
+                break
         
-
-    def fetch_horse_data(self):
-        url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc&page=2'
+    def fetch_horse_data(self, forced=False):
+        url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc'
         offset = 0
-        is_continued = True
+        break_loop = True
         while True:
             current_url = url.format(offset)
             print("Calling endpoint{}".format(current_url))
@@ -87,17 +105,19 @@ class ZedRun:
             count = len(jsondata)
             offset = offset + count
             first_horse = jsondata[0]
-            print('Calling endpoint')
+            print(len(jsondata))
+            print('Forced' + str(forced))
 
-            if not self.store.horse_exists(first_horse):
+            if forced or not self.store.horse_exists(first_horse):
+                print('Saving horse information')
                 horse_datas = self.mapper.map_horses_data(jsondata)
                 self.store.store_horses(horse_datas)
-                is_continued = False
+                break_loop = False
 
-            if is_continued and count == 10:
+            if break_loop or count == 0:
                 break
 
-    def fetch_stable_data(self ):
+    def fetch_stable_data(self,forced=False):
         url = 'https://api.zed.run/api/v1/horses/get_user_horses?public_address={0}&offset={1}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc&page=2'
         offset = 0
         is_continued = True
@@ -111,8 +131,6 @@ class ZedRun:
             offset = offset + count
             first_horse = jsondata[0]
             print('Calling endpoint')
-            import pdb
-            pdb.set_trace()
 
             if not self.store.horse_exists(first_horse):
                 horse_datas = self.mapper.map_horses_data(jsondata)
@@ -126,11 +144,11 @@ class ZedRun:
 def main(type, forced):
     run = ZedRun()
     if(type == 'horse'):
-        run.fetch_horse_data()
+        run.fetch_horse_data(forced)
     elif(type == 'race'):
-        run.fetch_race_data()
+        run.fetch_race_data(forced)
     elif(type == 'stable'):
-        run.fetch_stable_data()
+        run.fetch_stable_data(forced)
     
 
 if __name__ == '__main__':

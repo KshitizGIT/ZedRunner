@@ -2,14 +2,17 @@ import traceback
 import requests
 from zedrunner_store import ZedRunnerStore
 import argparse
+import logging.config
+import logging
 from mapper import Mapper
 from zednotification_bot import Notification
 
 class ZedRun:
 
-    def __init__(self):
+    def __init__(self, logger):
         self.mapper = Mapper()
         self.store = ZedRunnerStore()
+        self.logger = logger
 
 
     def fetch_race_data(self, forced=False):
@@ -70,10 +73,10 @@ class ZedRun:
         } """ 
         while True:
             after_query = query.replace('{0}',cursor)
-
+            self.logger.info(f"Calling endpoint {url} with query: {after_query}")
             response = requests.post(url, json={'query': after_query})
-            print(response.status_code)
             jsondata = response.json()
+            self.logger.debug("Response from json: {jsondata}")
             datas = jsondata['data']['get_race_results']['edges']
 
             cursor ='"'  + jsondata['data']['get_race_results']['page_info']['end_cursor'] + '"'
@@ -82,12 +85,14 @@ class ZedRun:
 
             data_set = self.mapper.map_race_data(datas)
             break_loop = True
-            print(cursor)
+            self.logger.debug("Last cursor is {cursor}")
             if forced or not self.store.race_exists(datas[0]):
                 # store races data set
+                self.logger.info("Storing races ...")
                 self.store.store_races(data_set['races'])
 
                 # store races data set
+                self.logger.info("Storing races results...")
                 self.store.store_races_result(data_set['races_results'])
                 break_loop = False
 
@@ -96,13 +101,13 @@ class ZedRun:
         
     def fetch_horse_data(self, forced=False):
         url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc'
-        offset = 13189
+        offset = 0
         while True:
             current_url = url.format(offset)
-            print("Calling endpoint{}".format(current_url))
+            self.logger.info(f"Calling endpoint: {current_url}")
             response = requests.get(current_url)
-            print(response.status_code)
             jsondata =response.json()
+            self.logger.debug(f"Response from api: {jsondata}")
             break_loop = True
             count = len(jsondata)
             if count == 0:
@@ -110,12 +115,10 @@ class ZedRun:
 
             offset = offset + count
             first_horse = jsondata[0]
-            print(len(jsondata))
-            print('Forced' + str(forced))
 
             if forced or not self.store.horse_exists(first_horse):
-                print('Saving horse information')
                 horse_datas = self.mapper.map_horses_data(jsondata)
+                self.logger.info('Store horses information to database.')
                 self.store.store_horses(horse_datas)
                 break_loop = False
 
@@ -147,9 +150,13 @@ class ZedRun:
 
 
 def main(type, forced):
+    logging.config.fileConfig('logging.conf')
     message = f"Zed Run with settings Type:'{type}' and Forced: {forced}"
+    logger = logging.getLogger('zedrunner')
     try:
-        run = ZedRun()
+        logger.info(f"Starting {message}")
+
+        run = ZedRun(logger)
         if(type == 'horse'):
             run.fetch_horse_data(forced)
         elif(type == 'race'):
@@ -158,11 +165,12 @@ def main(type, forced):
             run.fetch_stable_data(forced)
 
         success_message = message + " completed successfully."
-
         Notification.send_message(success_message)
+        logger.info(success_message)
     except Exception as e:       
         failure_message = message + ' failed.'
         stacktrace = traceback.format_exc()
+        logger.error(f"Error: {failure_message} Reason: {stacktrace}")
         Notification.send_message(f"Error: {failure_message} Reason: {stacktrace}")
 
 

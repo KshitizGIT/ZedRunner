@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 requests = "*"
 mysql-connector-python = "*"
+python-telegram-bot = "*"
 
 [dev-packages]
 

@@ -2,6 +2,7 @@ import requests
 from zedrunner_store import ZedRunnerStore
 import argparse
 from mapper import Mapper
+from zednotification_bot import Notification
 
 class ZedRun:
 
@@ -15,7 +16,7 @@ class ZedRun:
         cursor = 'null'
 
         query ="""query{
-        get_race_results(first:100, input: {only_my_racehorses: false}, after: {0}) {
+        get_race_results(first:1000, input: {only_my_racehorses: false}, after: {0}) {
             edges {
             cursor
             node {
@@ -66,7 +67,6 @@ class ZedRun:
          }
             
         } """ 
-        break_loop = True
         while True:
             after_query = query.replace('{0}',cursor)
 
@@ -80,6 +80,7 @@ class ZedRun:
             has_next_page = jsondata['data']['get_race_results']['page_info']['has_next_page']
 
             data_set = self.mapper.map_race_data(datas)
+            break_loop = True
             print(cursor)
             if forced or not self.store.race_exists(datas[0]):
                 # store races data set
@@ -95,13 +96,13 @@ class ZedRun:
     def fetch_horse_data(self, forced=False):
         url = 'https://api.zed.run/api/v1/horses/roster?offset={0}&gen\[\]=1&gen\[\]=268&sort_by=created_by_desc'
         offset = 0
-        break_loop = True
         while True:
             current_url = url.format(offset)
             print("Calling endpoint{}".format(current_url))
             response = requests.get(current_url)
             print(response.status_code)
             jsondata =response.json()
+            break_loop = True
             count = len(jsondata)
             offset = offset + count
             first_horse = jsondata[0]
@@ -142,14 +143,24 @@ class ZedRun:
 
 
 def main(type, forced):
-    run = ZedRun()
-    if(type == 'horse'):
-        run.fetch_horse_data(forced)
-    elif(type == 'race'):
-        run.fetch_race_data(forced)
-    elif(type == 'stable'):
-        run.fetch_stable_data(forced)
-    
+    message = f"Zed Run with settings Type:'{type}' and Forced: {forced}"
+    try:
+        run = ZedRun()
+        if(type == 'horse'):
+            run.fetch_horse_data(forced)
+        elif(type == 'race'):
+            run.fetch_race_data(forced)
+        elif(type == 'stable'):
+            run.fetch_stable_data(forced)
+
+        success_message = message + " completed successfully."
+
+        Notification.send_message(success_message)
+    except Exception as e:       
+        failure_message = message + ' failed.'
+        Notification.send_message(f"Error: {failure_message} Reason {str(e)}")
+
+
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()

@@ -69,8 +69,6 @@ class ZedRunnerStore:
 
     def store_races_result(self, races_data):
         list_of_race_ids = set([d[0] for d in races_data])
-        import pdb
-        pdb.set_trace()
         format_strings = ','.join(['%s'] * len(list_of_race_ids))
         delete_races_query = "DELETE From races_results where race_id in (%s)"%format_strings
 
@@ -89,6 +87,7 @@ class ZedRunnerStore:
                 cursor.execute(delete_races_query, tuple(list_of_race_ids))
                 cursor.executemany(insert_races_query, races_data)
                 connection.commit()
+
     def race_exists(self, race_info):
         query_race = "SELECT 1 from races where race_id = '%s'"%(race_info['node']['race_id'])
         print(query_race)
@@ -98,6 +97,8 @@ class ZedRunnerStore:
                 cursor.execute(query_race)
                 data = cursor.fetchall()
                 if data:
+                    import pdb
+                    pdb.set_trace()
                     print('Race exists')
                     return True
                 else:

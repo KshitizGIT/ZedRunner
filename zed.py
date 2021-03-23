@@ -6,6 +6,7 @@ import logging.config
 import logging
 from mapper import Mapper
 from zednotification_bot import Notification
+from config import API_RETRY_COUNT
 
 class ZedRun:
 
@@ -14,6 +15,29 @@ class ZedRun:
         self.logger = logger
         self.store = ZedRunnerStore(logger)
 
+    def make_api_calls(self,url, method, body=None, attempt=1):
+        retry = API_RETRY_COUNT
+        try:
+            self.logger.debug(f"Calling '{url}' attempt:{attempt}")
+            response = None
+            if method == 'GET':
+                response = requests.get(url)
+            elif method == 'POST':
+                response =  requests.post(url, json=body)
+            self.logger.debug(f"StatusCode: {response.status_code}. Content: {response.text}")
+            return response
+            if response.status_code != 200:
+                raise Exception(response.text)
+
+            
+
+        except Exception as e:
+            attempt = attempt + 1
+            if attempt <= retry:
+                self.make_api_calls(url, method, body, attempt)
+            else:
+                self.logger.error("Retry attempts exceeded..")
+                raise
 
     def fetch_race_data(self, forced=False):
         url = 'https://zed-ql.zed.run/graphql/'
@@ -74,7 +98,7 @@ class ZedRun:
         while True:
             after_query = query.replace('{0}',cursor)
             self.logger.info(f"Calling endpoint {url} with query: {after_query}")
-            response = requests.post(url, json={'query': after_query})
+            response = self.make_api_calls(url, method='POST', body={'query': after_query})
             self.logger.debug(f"Response: status_code: {response.status_code}, context: {response.text}")
             jsondata = response.json()
             datas = jsondata['data']['get_race_results']['edges']
@@ -105,7 +129,7 @@ class ZedRun:
         while True:
             current_url = url.format(offset)
             self.logger.info(f"Calling endpoint: {current_url}")
-            response = requests.get(current_url)
+            response = self.make_api_calls(current_url, method='GET')
             jsondata =response.json()
             self.logger.debug(f"Response from api: {jsondata}")
             break_loop = True
@@ -136,7 +160,7 @@ class ZedRun:
             while True:
                 current_url = url.format(address, offset)
                 self.logger.info(f"Calling endpoint: {current_url}")
-                response = requests.get(current_url)
+                response = self.make_api_calls(current_url,method='GET')
                 jsondata =response.json()
                 self.logger.debug(f"Response from api: {jsondata}")
                 break_loop = True

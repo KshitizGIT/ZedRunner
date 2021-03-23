@@ -6,6 +6,7 @@ Retrieves horse racing data by calling zed.run apis and store them to MySQL Data
 ## Prerequisites
 1. python
 2. pipenv
+3. MySQL with full unicode support
 
 ## Installation
 
@@ -14,6 +15,7 @@ git clone https://github.com/KshitizGIT/ZedRunner.git
 cd ZedRunner
 pipenv install --deploy
 ```
+Also, you will need to run the scripts located inside the `migrations` folder to a MySQL database.
 
 ## How to run ?
 
@@ -45,5 +47,6 @@ BOT = {
    'token': '1793290514:AAFjFd95hzTxOb-lxN1ymc3vV7uBcUlJ-Xc' ,
    'channel': '@zed_channel_test'
 }
+API_RETRY_COUNT = 3
 
 ```

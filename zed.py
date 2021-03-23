@@ -20,7 +20,7 @@ class ZedRun:
         cursor = 'null'
 
         query ="""query{
-        get_race_results(first:1000, input: {only_my_racehorses: false}, after: {0}) {
+        get_race_results(first:500, input: {only_my_racehorses: false}, after: {0}) {
             edges {
             cursor
             node {
@@ -75,8 +75,8 @@ class ZedRun:
             after_query = query.replace('{0}',cursor)
             self.logger.info(f"Calling endpoint {url} with query: {after_query}")
             response = requests.post(url, json={'query': after_query})
+            self.logger.debug(f"Response: status_code: {response.status_code}, context: {response.text}")
             jsondata = response.json()
-            self.logger.debug("Response from json: {jsondata}")
             datas = jsondata['data']['get_race_results']['edges']
 
             cursor ='"'  + jsondata['data']['get_race_results']['page_info']['end_cursor'] + '"'
